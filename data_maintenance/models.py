@@ -1,10 +1,54 @@
 from django.db import models
 # 會員MODEL
-class Member(models.Model):
+from django.contrib.auth.models import BaseUserManager,AbstractBaseUser
+from django.contrib.auth.hashers import make_password
+class CustomUserManager(BaseUserManager):
+    def create_user(self,account,password,uid,**extra_fields):
+        user = self.model(uid=uid,account=account, **extra_fields)
+        user.set_password(password)
+        user.save()
+        return user
+    def create_superuser(self,account,password,uid='None',**extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError(("Superuser must have is_staff=True."))
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError(("Superuser must have is_superuser=True."))
+        return self.create_user(account, password,uid, **extra_fields)
 
+
+from django.contrib.auth.models import PermissionsMixin
+class MemberP(AbstractBaseUser , PermissionsMixin):
     uid = models.CharField("uid", max_length=50,primary_key=True)
+    account = models.CharField("帳號", max_length=50 ,null=False,unique=True)
+    password = models.CharField("密碼",max_length=100,null=False)
+    is_active = models.BooleanField()
+    is_staff = models.BooleanField() # a admin user; non super-user
+    is_superuser = models.BooleanField() # a superuser
+    last_login = models.DateTimeField(null=True, blank=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
+    USERNAME_FIELD = "account"
+    REQUIRED_FIELDS = ['password','uid']
+    objects = CustomUserManager()
+    @property
+    def is_anonymous(self):
+        return False
+
+    def __str__(self):
+        return f"會員編號為{self.uid}"
+
+
+class Member(models.Model):
+    uid = models.ForeignKey(
+        MemberP,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        null=False,
+    )
     name = models.CharField("會員姓名",max_length=20)
-    phone = models.CharField("電話",max_length=20)
+    phone = models.CharField("電話",max_length=20,unique=True)
     gender = models.CharField("性別",max_length=5)
     email = models.EmailField("電子信箱",max_length=50)
     address = models.CharField("通訊住址", max_length=50)
@@ -14,29 +58,9 @@ class Member(models.Model):
     USERNAME_FIELD = "uid"
 
     def __str__(self):
-        return f"會員{self.name}您好"
+        return f"會員{self.name}"
 
-from django.contrib.auth.models import AbstractBaseUser ,UserManager
-class MemberP(AbstractBaseUser):
-    username = None
-    upid = models.OneToOneField(
-        Member,
-        on_delete=models.CASCADE,
-        primary_key=True,
-        null=False,
-    )
-    account = models.CharField("帳號", max_length=50 ,null=False,unique=True)
-    password = models.CharField("密碼",max_length=100,null=False)
-    is_verified = models.BooleanField(default=False)
-    USERNAME_FIELD = "account"
-    REQUIRED_FIELDS = ['password','username']
-    objects = UserManager()
-    @property
-    def is_anonymous(self):
-        return False
-
-    def __str__(self):
-        return f"會員{self.upid}您好"
+# 自定義user model
 
 
 # # 員工MODEL
