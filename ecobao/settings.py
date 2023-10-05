@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 
-AUTH_USER_MODEL = "data_maintenance.MemberP"
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,8 +25,12 @@ SECRET_KEY = 'django-insecure-_^ky^o3cw++ibm75m%^9!o1s8yg-eqi)ay1p39^)$arkns74qi
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 AUTH_USER_MODEL = 'data_maintenance.MemberP'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'account'
 
 
 # Application definition
@@ -40,9 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'goods.apps.GoodsConfig',
+    'order.apps.OrderConfig',
     'data_maintenance.apps.DataMaintenanceConfig',
 ]
 
@@ -53,7 +58,11 @@ REST_FRAMEWORK = {
     ),
    'DEFAULT_AUTHENTICATION_CLASSES': (
     'rest_framework_simplejwt.authentication.JWTAuthentication',
-),
+    ),
+    'DEFAULT_PARSER_CLASSES': [
+            'rest_framework.parsers.JSONParser',
+        ],
+        'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 # JWT設計
 from datetime import timedelta
@@ -64,6 +73,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES':('Bearer', 'JWT'),
     "ALGORITHM":"HS256",
 
+    'USER_ID_FIELD': 'uid',
     # 設定
     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
     "TOKEN_OBTAIN_SERIALIZER": "data_maintenance.serializers.Member_TokenObtainPairSerializer",
@@ -74,6 +84,7 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
@@ -159,6 +170,37 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+# CORS setting
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8000",
+    # 趙伯恩測試網址
+    "http://localhost:3000",
+    # 網域名稱
+]
+
+CORS_ALLOW_METHODS = [
+'GET',
+'OPTIONS',
+'PATCH',
+'POST',
+'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+'accept',
+'accept-encoding',
+'authorization',
+'content-type',
+'dnt',
+'origin',
+'user-agent',
+'ngrok-skip-browser-warning',
+]
+
+CORS_ALLOW_CREDENTIALS = False
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

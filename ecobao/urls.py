@@ -25,12 +25,17 @@ from rest_framework_simplejwt.views import (
 
 router = routers.SimpleRouter()
 router.register(r'member', dv.MemberAPIViews,basename='member')
-router.register(r'Store', dv.Store_Viewset,basename='store')
+router.register(r'memberP',dv.MemberP_Viewset,basename='memberp')
+router.register(r'store_data', dv.Store_data_Viewset,basename='store')
+router.register(r'store_sch',dv.Store_search_Viewset,basename='Store_search')
+router.register(r'register',dv.Member_register_APIViews,basename='register')
 # router.register(r'', dv.Member_LoginAPIViews,basename='member')
 # router.register(r'accounts', AccountViewSet)
 
 urlpatterns = [
-    path('Login',dv.Member_LoginAPIViews.as_view(),name="login"),
+    path('api/token/obtain/',TokenObtainPairView.as_view(),name='token'),
+    path('api/token/refresh/',TokenRefreshView.as_view(),name='token'),
+    path('Member/login/',dv.Member_LoginAPIViews.as_view(),name="login"),
     path('default/admin',admin.site.urls)
 ]
 
@@ -42,7 +47,7 @@ urlpatterns += router.urls
 #     #Token
 #     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
 #     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-#     # path('admin/', admin.site.urls),
+#     # path('admin/', admin.s ite.urls),
 #     # # 登入/註冊
 #     path('s/login',dv.MemberLoginAPIViews.as_view(),name='member'),
 #     # path('s/register'),

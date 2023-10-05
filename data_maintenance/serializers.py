@@ -9,7 +9,7 @@ class Member_TokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
 
-        token['id'] = get_id(user.account)
+        token['uid'] = get_id(user.account)
         token['account'] = user.account
 
         return token
@@ -24,7 +24,7 @@ class Data_MemberP_Serializers(serializers.ModelSerializer):
     class Meta:
         model = MemberP
         fields = "__all__"
-        read_only_fields = ['upid','account']
+        read_only_fields = ['uid','account']
 
 class Data_pass_Serializers(serializers.ModelSerializer):
     class Meta:
@@ -35,14 +35,16 @@ class Data_pass_Serializers(serializers.ModelSerializer):
 
 def get_id(account):
     from .models import MemberP
-    data =MemberP.objects.get(account = account)
+    data = MemberP.objects.filter(account = account)
+    print(data)
     try:
-        if data['upid'] == None or data['upid'] == "" :
-            return False
+        if data[0].uid == None or data[0].uid == "" :
+            return "notfound"
         else:
-            return data['upid']
-    except:
-        raise SystemError('伺服器異常')
+            return data[0].uid
+    except Exception as e:
+        print(e)
+        return ""
 
 class LoginSerializers(serializers.Serializer):
     account = serializers.CharField()
