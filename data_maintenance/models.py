@@ -72,7 +72,9 @@ class Employee(models.Model):
     email = models.EmailField("電子信箱",max_length=50)
     address = models.CharField("通訊住址", max_length=50)
     birth = models.DateField("生日")
-    USERNAME_FIELD = "eid"
+
+    def __str__(self):
+        return f"員工{self.name}"
 
 class EmployeeP(models.Model):
     epid = models.OneToOneField(
@@ -97,11 +99,13 @@ class Store(models.Model):
     intro = models.CharField("店家簡介", max_length=50)
     area = models.CharField('所在區域',max_length=40)
     address = models.CharField("店家地址",max_length=50)
+    pic = models.ImageField("店家照片", upload_to='assets/Store',null=True)
     lng = models.FloatField("經度")
     lat = models.FloatField("緯度")
     link = models.CharField("社群連結", max_length=50,null=True)
     on_business = models.BooleanField('是否營業')
-    USERNAME_FIELD = "sid"
+    def __str__(self):
+        return f"店家{self.name}"
 
 class Store_open(models.Model):
     stid = models.OneToOneField(

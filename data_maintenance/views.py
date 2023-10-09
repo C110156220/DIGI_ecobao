@@ -16,7 +16,8 @@ from .models import *
 # token
 from rest_framework_simplejwt.views import TokenObtainPairView
 #權限
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
+
 # JSON 格式輸出'
 class JSONResponse(HttpResponse):
     """
@@ -36,46 +37,53 @@ class MemberAPIViews(viewsets.ModelViewSet):
     """
     (登入後_會員功能)
     """
-    @action(methods=['get'], detail=False)
-    @permission_classes([IsAuthenticated])
+    serializer_class=Data_Member_Serializers
+    queryset = Member.objects.all()
+
     # method -> http method , detail true -> 回傳一個物件 false -> 回傳多個物件
+    @action(methods=['GET'], detail=False,permission_classes=[IsAuthenticated])
     def account(self,request):
         """
-        取得會員基本的資訊
+        取得會員基本的資訊 V
         """
-        uid = request.data.get('uid','')
+        uid = request.user.uid
+        print(uid)
         if uid == '':
-            return (Response(status=404,data='未提供資料'))
+            return (Response(status=404,data='未給予資料(header)'))
+        if Member.objects.filter(uid_id=uid).count() != 1:
+            return(Response(status=404,data="未知帳號"))
+        data = Member.objects.get(uid_id = uid)
+        serializer = Data_Member_Serializers(data,many = False)
+        return JSONResponse(serializer.data)
 
-        data = Member.objects.get(uid_id = request.data.get('uid'))
-        data = Data_Member_Serializers(data,many = True)
-        return JSONResponse(data)
-
-    @action(methods=['post'], detail=False)
-    @permission_classes([IsAuthenticated])
+    @action(methods=['post'], detail=False,permission_classes=[IsAuthenticated])
     def update_allergen(self,request):
         """
-        使用者更新過敏原來源
+        使用者更新過敏原資料 V
         """
-        uid = request.user.user_id
+        uid = request.user.uid
         allergen = request.data.get('allergen','')
-        if uid == '' or allergen == '':return(Response(status=404,data='未提供資料'))
+
         if Member.objects.filter(uid_id = uid).count() == 1:
             try:
-                member_data = Member.objects.get(uid = request.data.get('uid'))
+                member_data = Member.objects.get(uid_id = uid)
                 member_data.allergen = allergen
                 member_data.save()
             except Exception as e:
                 print(e)
                 return(Response(status=500,data='系統錯誤，請洽管理'))
-        return Response(HTTP_202_ACCEPTED)
+            return Response(status=200,data="success")
+        else:
+            return Response(status=404,data="未知帳號")
 
-    @action(methods=['post'], detail=False)
-    @permission_classes([IsAuthenticated])
+    @action(methods=['post'], detail=False,permission_classes = [IsAuthenticated])
     def update_account(self,request):
         """
-        更新會員資料維護
+        更新會員資料維護 V
         """
+        uid = request.user.uid
+        if Member.objects.filter(uid_id=uid).count() != 1:
+            return(Response(status=404,data='未知帳號'))
         upd_data = {}
         upd_data['name'] = request.data.get('name','')
         upd_data['phone'] =request.data.get('phone','')
@@ -86,29 +94,30 @@ class MemberAPIViews(viewsets.ModelViewSet):
 
         if '' in upd_data : return(Response(status=404,data='資料未提供完整'))
 
-        member_data = Member.objects.get(uid = id)
-        member_data.name = upd_data['name']
-        member_data.phone = upd_data['phone']
-        member_data.gender = upd_data['gender']
-        member_data.email = upd_data['email']
-        member_data.address = upd_data['address']
-        member_data.birth = upd_data['birth']
-        member_data.save()
-        return Response(status=200,data='success')
+        try:
+            member_data = Member.objects.get(uid_id = uid)
+            member_data.name = upd_data['name']
+            member_data.phone = upd_data['phone']
+            member_data.gender = upd_data['gender']
+            member_data.email = upd_data['email']
+            member_data.address = upd_data['address']
+            member_data.birth = upd_data['birth']
+            member_data.save()
+            return Response(status=200,data='success')
+        except:
+            return(Response(status=404,data="資料發生重複"))
 
-
-    @action(methods=['post'], detail=False)
-    @permission_classes([IsAuthenticated])
+    @action(methods=['post'], detail=False,permission_classes = [IsAuthenticated])
     def delete(self,request):
-        uid = request.data.get('uid')
+        uid = request.user.uid
         if (uid == ''):
             return(Response(status=404,data='未提供資料'))
-        if Member.objects.filter(uid=uid) != 1 :
+        if Member.objects.filter(uid_id=uid).count() != 1 :
             return(Response(status=404,data='帳號?'))
-
-        data = Member.objects.get(uid = request.data.get('uid'))
-        data.delete()
-        return Response()
+        data1 = MemberP.objects.get(uid=uid)
+        data1.is_active = 0
+        data1.save()
+        return Response(status=201,data="停用成功")
 
 class MemberP_Viewset(viewsets.ModelViewSet):
     """
@@ -116,27 +125,27 @@ class MemberP_Viewset(viewsets.ModelViewSet):
     """
     querset = MemberP.objects.all()
     serializer_class = Data_MemberP_Serializers
-    permission_class = (IsAuthenticated,)
+    permission_class = (IsAuthenticated,AllowAny)
     parser_classes = (JSONParser,)
 
 
-    @action(methods=['post'], detail=False)
+    @action(methods=['post'], detail=False,permission_classes = [IsAuthenticated])
     def password_upd(self,request):
         """
         使用者更新密碼
         """
-        form_account = request.data.get('account','')
+        form_uid = request.user.uid
         old_pwd = request.data.get('old_password','')
         new_pwd = request.data.get('new_password','')
-        if form_account == '' or old_pwd == '' or new_pwd == '' :
+        if form_uid == '' or old_pwd == '' or new_pwd == '' :
             return(Response(status=404,data='未給予資料'))
-        if (MemberP.objects.filter(account = form_account).count() != 1):
+        if (MemberP.objects.filter(uid = form_uid,is_active=1).count() != 1):
             return(Response(status=404,data='未知帳號'))
         else:
             from django.contrib.auth import get_user_model
             try:
                 User = get_user_model()
-                data = User.objects.get(account =request.data.get('account'))
+                data = User.objects.get(uid = form_uid)
                 if check_password(old_pwd,data.password):
                     data.set_password(new_pwd)
                     data.save()
@@ -151,7 +160,7 @@ class MemberP_Viewset(viewsets.ModelViewSet):
         # except:
         #     return Response(self.response(404,'Bad'))
 
-    @action(methods=['post'], detail=False)
+    @action(methods=['post'], detail=False,permission_classes=[IsAuthenticated])
     def forgot(self,request):
         pass
 
@@ -173,14 +182,14 @@ class Store_search_Viewset(viewsets.ModelViewSet):
     queryset = Store.objects.all()
     serializer_class = StoreSerializers
 
-    @action(methods=['get'], detail=False)
+    @action(methods=['get'], detail=False,permission_classes=[AllowAny])
     def all(self,request):
         """取得所有店家"""
         data = Store.objects.all()
         serializer = StoreSerializers(data,many=True)
         return JSONResponse(serializer.data)
 
-    @action(methods=['get','post','options'], detail=False)
+    @action(methods=['get','post'], detail=False,permission_classes = [AllowAny])
     def type(self,request):
         """取得該地區的店家"""
         if request.GET.get('type','') == "" or request.GET.get('type','') == None:
@@ -189,7 +198,7 @@ class Store_search_Viewset(viewsets.ModelViewSet):
         serializer = StoreSerializers(data,many=True)
         return JSONResponse(serializer.data)
 
-    @action(methods=['get','post'], detail=False)
+    @action(methods=['get','post'], detail=False,permission_classes=[AllowAny])
     def area(self,request):
         """前端給予"條件"進行搜尋"""
         if request.data.get('name') == "" or request.data.get('name') == None:
@@ -203,7 +212,7 @@ class Store_search_Viewset(viewsets.ModelViewSet):
         serializer = StoreSerializers(data,many=True)
         return JSONResponse(serializer.data)
 
-    @action(methods=['get','post'], detail=False)
+    @action(methods=['get','post'], detail=False ,permission_classes=[AllowAny])
     def search(self,request):
         if request.GET.get('name','') == '' or request.GET.get('name','') == None:
             return(Response(status=404,data='沒輸入資料喔'))
@@ -216,7 +225,7 @@ class Store_search_Viewset(viewsets.ModelViewSet):
         except:
             return Response(status=500,data = "出問題搂")
 
-    @action(methods=['get','post'],detail=False)
+    @action(methods=['get','post'],detail=False,permission_classes=[AllowAny])
     def device_around(self,request):
         from geopy.distance import geodesic
         lat = request.data.get('lat','0')
@@ -232,14 +241,14 @@ class Store_search_Viewset(viewsets.ModelViewSet):
                 res.append(i)
         return JSONResponse(res)
 
-    @action(methods=['get'], detail=False)
+    @action(methods=['get'], detail=False,permission_classes=[AllowAny])
     def id(self,request):
         """取得該ID的店家"""
         data = Store.objects.get(sid = request.data.get('sid'))
         serializer = StoreSerializers(data,many=True)
         return JSONResponse(serializer.data)
 
-    @action(methods=['post'], detail=False)
+    @action(methods=['post'], detail=False,permission_classes=[IsAuthenticated])
     def chge_data(self,request):
         data = Store.objects.get(sid = request.POST['id'])
         data.type = request.post['type']
@@ -248,7 +257,7 @@ class Store_search_Viewset(viewsets.ModelViewSet):
         data.address = request.post['address']
         return Response(data=data,status=HTTP_200_OK)
 
-    @action(methods=['post'], detail=False)
+    @action(methods=['post'], detail=False,permission_classes=[IsAuthenticated])
     def chge_address(self,request):
         data = Store.objects.get(sid = request.POST['id'])
         return Response(data=data,status=HTTP_200_OK)
@@ -271,7 +280,7 @@ class Store_data_Viewset(viewsets.ModelViewSet):
     querysets = Store.objects.all()
     serializer_class = StoreSerializers
 
-    @action(methods=['post'] , detail=False)
+    @action(methods=['post'] , detail=False ,permission_classes=[AllowAny])
     def register(self,request):
         uid = request.data.get('uid','')
         if uid == "" or uid == None :
@@ -287,21 +296,22 @@ class Store_data_Viewset(viewsets.ModelViewSet):
         data['link'] = request.data.get('link','')
         data['on_business'] = request.data.get('on_business','')
 
-        if (Member.objects.filter(uid_id = request.data.get('uid')).count() == 1):
+        if (Member.objects.filter(uid_id = request.data.get('uid')).count() != 1):
             return Response(status=404,data="account not found")
 
-        account_info = Member.objects.get(uid = request.data.get('uid'))
+        account_info = Member.objects.get(uid_id = uid)
 
         if self.__new_account(data,account_info):
             return Response(status=200,data="success")
         else:
-            return Response(status=404,data="請洽系統管理")
-    @action(methods=['get'],detail = False)
+            return Response(status=500,data="新增失敗，請洽系統管理")
+
+    @action(methods=['get'],detail = False,permission_classes=[IsAuthenticated])
     def delit(self,request):
         pass
     # @action(methods=['post'],detail= False)
 
-    @action(methods=['post'] , detail=False)
+    @action(methods=['post'] , detail=False,permission_classes=[IsAuthenticated])
     def upd(self,request):
         # 資料驗證
         data = {}
@@ -365,6 +375,7 @@ class Store_data_Viewset(viewsets.ModelViewSet):
 # 會員登入
 class Member_LoginAPIViews(APIView):
     serializer_class = Data_MemberP_Serializers
+    permission_classes = [AllowAny]
     parser_classes = [JSONParser,]
     def post(self,request):
         form_account = request.data.get('account')
@@ -401,7 +412,7 @@ class Member_LoginAPIViews(APIView):
 class Member_register_APIViews(viewsets.ModelViewSet):
     # serializer_class = Data_Member_Serializers
 
-    @action(methods=['post'],detail= False)
+    @action(methods=['post'],detail= False,permission_classes=[AllowAny])
     def new(self,request):
         # 驗證資料
         data = {}
@@ -460,6 +471,7 @@ class Member_register_APIViews(viewsets.ModelViewSet):
 
     def __new_private(self,dict,dict2):
         from django.contrib.auth import get_user_model
+        from django.contrib.auth.models import Group
         try:
             user = get_user_model()
             uid = "M{0:05d}".format(Member.objects.count() +3)
@@ -470,6 +482,7 @@ class Member_register_APIViews(viewsets.ModelViewSet):
                 is_active=True,
                 is_staff =False,
                 is_superuser=False)
+
             if self.__new_account(uid,dict2):
                 return True
             else:

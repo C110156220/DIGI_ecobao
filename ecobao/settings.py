@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'activity.apps.ActivityConfig',
     'goods.apps.GoodsConfig',
     'order.apps.OrderConfig',
     'data_maintenance.apps.DataMaintenanceConfig',
@@ -53,7 +54,7 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
-        # 'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticated',
         'rest_framework.permissions.AllowAny',
     ),
    'DEFAULT_AUTHENTICATION_CLASSES': (
