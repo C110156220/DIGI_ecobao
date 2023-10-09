@@ -18,7 +18,7 @@ class Data_Member_Serializers(serializers.ModelSerializer):
     class Meta:
         model = Member
         fields = "__all__"
-        read_only_fields = ['uid']
+        # read_only_fields = ['uid']
 
 class Data_MemberP_Serializers(serializers.ModelSerializer):
     class Meta:

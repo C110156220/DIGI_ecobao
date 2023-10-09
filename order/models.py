@@ -12,10 +12,10 @@ class Cart(models.Model):
         primary_key=False,
         null=False,
     )
-    sid = models.ForeignKey(Store, verbose_name='店家編號', on_delete=models.CASCADE)
     gid = models.ForeignKey(Goods, verbose_name='商品編號', on_delete=models.CASCADE)
-
-    quantity = models.IntegerField('數量')
+    quantity = models.IntegerField('購買數量')
+    price = models.CharField('商品價格',max_length=10,default='0')
+    add_date = models.DateTimeField('添加時間',auto_now=True)
 
 class Order(models.Model):
     """訂單"""
