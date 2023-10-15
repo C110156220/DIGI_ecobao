@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 # APIViews
 from rest_framework import viewsets
+from django_ratelimit.decorators import ratelimit
 from rest_framework.decorators import action,permission_classes
 #  權限
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -25,6 +26,7 @@ class Activity_Get_APIViews(viewsets.ModelViewSet):
     queryset = Activity.objects.all()
 
     @action(methods=['get'],permission_classes=[AllowAny],detail=False)
+    # @ratelimit(key='ip', rate='8/m', method='ALL', block=True)
     def all(self,request):
         """取得所有文章"""
         article = Activity.objects.filter(status=True)
@@ -32,14 +34,15 @@ class Activity_Get_APIViews(viewsets.ModelViewSet):
         return(JsonResponse(serializer.data,safe=False))
 
     @action(methods=['get'],permission_classes=[AllowAny],detail=False)
+    # @ratelimit(key='ip', rate='8/m', method='ALL', block=True)
     def one(self,request):
         """取得該ID的文章"""
         actid = request.GET.get('actid','')
         if actid == "": return(Response(status=404,data="資料?"))
         if Activity.objects.filter(actid = actid).count() != 1 :
-            return(Response(status=404,data="查無文章"))
-        
-        article = Activity.objects.get(actid = actid)
+            return(Response(status=404,data="不會叫你去Google"))
+
+        article = Activity.objects.filter(actid = actid)
         serializer = Activity_serializers(article,many=True)
         return(JsonResponse(serializer.data,safe=False))
 

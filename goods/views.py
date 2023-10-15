@@ -1,7 +1,7 @@
 from rest_framework.renderers import JSONRenderer
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action,permission_classes
+from rest_framework.decorators import action,permission_classes,authentication_classes
 from rest_framework.permissions import AllowAny,IsAuthenticated
 # 回應
 from django.http import HttpResponse
@@ -67,25 +67,27 @@ class JSONResponse(HttpResponse):
 class Goods_Viewset(viewsets.ModelViewSet):
     serializer_class = Goods_serializers
 
-    @action(methods=['get'],detail=False,permission_classes=[AllowAny])
+
+    @action(methods=['get'],detail=False,permission_classes=[AllowAny],authentication_classes=[])
     def store(self,request):
         sid = request.GET.get('sid','')
         if sid == '' :
             return res().NotFound()
+        sid = Store.objects.get(sid=sid)
         db_ob = Goods.objects.filter(sid_id = sid)
         if db_ob.count() == 0 :
            return res().dataError()
         serializer = Goods_serializers(db_ob,many=True)
         return(Response(status=200,data=serializer.data))
 
-    @action(methods=['Get'],detail=False,permission_classes=[AllowAny])
+    @action(methods=['Get'],detail=False,permission_classes=[AllowAny],authentication_classes=[])
     def all(self,request):
         """取得所有商品"""
         goods = Goods.objects.filter(status=1)
         serializer = Goods_serializers(goods,many=True)
         return(Response(status=200,data=serializer.data))
 
-    @action(methods=['get'],detail=False,permission_classes=[AllowAny])
+    @action(methods=['get'],detail=False,permission_classes=[AllowAny],authentication_classes=[])
     def id(self,request):
         """取得該商品編號的商品"""
         gid = request.GET.get('gid','')
@@ -97,7 +99,7 @@ class Goods_Viewset(viewsets.ModelViewSet):
 
         serializer = Goods_serializers(db_ob,many=True)
         return(Response(status=200,data=serializer.data))
-
+    @authentication_classes([])
     @action(methods=['GET'],detail=False,permission_classes=[IsAuthenticated])
     def allergen_avoid(self,request):
         import ast
@@ -122,26 +124,35 @@ class Goods_Upload_Viewsets(viewsets.ModelViewSet):
     def upload(self,request):
         """上架商品"""
         uid = request.user.uid
-        if Store.objects.filter(upid = uid).count() != 1:return(res().dataError())
+        print(uid)
+        if Store.objects.filter(upid_id = uid).count() != 1:return(res().dataError())
         serializer = Goods_input_serializers(data = request.data)
         if serializer.is_valid():
             data = request.data
-            ob = Goods.objects.create(
-                gid = "G{0:05d}".format(Goods.objects.all().count() + 3),
-                type = data['type'],
-                sid = Store.object.get(upid = uid),
-                name = data['name'],
-                intro = data['intro'],
-                quantity = data['quantity'],
-                food_pic = data['food_pic'],
-                price = data['price'],
-                ingredient = data['ingredient'],
-                allergen = data['allergen']
-            )
-            ob.save()
-            return(res().Success())
+            try:
+                ob = Goods.objects.create(
+                    gid = "G{0:05d}".format(Goods.objects.all().count() + 3),
+                    type = data['type'],
+                    sid = Store.objects.get(upid = uid),
+                    name = data['name'],
+                    intro = data['intro'],
+                    quantity = data['quantity'],
+                    food_pic = data['food_pic'],
+                    price = data['price'],
+                    ingredient = data['ingredient'],
+                    allergen = data['allergen']
+                )
+                ob.save()
+                return(res().Success())
+            except Exception as e:
+                print(e)
+                return(Response(status=500))
+
         else:
-            return(res().dataError())
+            errors = serializer.errors
+            print("建立失敗")
+            print(errors)
+            return(Response(status=400,data=errors))
 
 
     @action(methods=['post'],detail=False)
@@ -185,13 +196,14 @@ class Evaluate_store_Viewset(viewsets.ModelViewSet):
         ob.save()
         return Response(status=200,data="success")
 
-    @action(methods=['GET'],detail=False,permission_classes=[AllowAny])
+    @action(methods=['GET'],detail=False,permission_classes=[AllowAny],authentication_classes=[])
     def store(self,request):
         sid = request.GET.get('sid','')
         if sid == '':
             return(Response(status=400,data="參數呢????"))
         if Store.objects.filter(sid = sid).count() != 1 :
             return(Response(status=400,data="餐聽notfound"))
+
         sid = Store.objects.get(sid=sid)
         data = Evaluate.objects.filter(sid_id = sid)
         serializer = Evaluate_serializers(data , many = True)
@@ -216,9 +228,14 @@ class Evaluate_store_Viewset(viewsets.ModelViewSet):
         data.delete()
         return res().Success()
 
-    @action(methods=['GET'],detail=False,permission_classes=[AllowAny])
-    def score(self,request):
+    @authentication_classes([])
+    @action(methods=['GET'],detail=False,permission_classes=[AllowAny],authentication_classes=[])
+    def store_score(self,request):
         sid = request.GET.get('sid','')
         if sid == '':
             return(res().dataError())
-        
+        sid = Store.objects.get(sid=sid)
+        from django.db.models import Sum
+        import math
+        total_score_for_sid = Evaluate.objects.filter(sid=sid).aggregate(total_score=Sum('star'))['total_score']/Evaluate.objects.filter(sid=sid).count()
+        return(Response(status=200,data={'rating':math.floor(total_score_for_sid)}))

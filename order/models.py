@@ -6,7 +6,7 @@ from goods.models import Goods
 class Cart(models.Model):
     """購物車"""
     cart_id = models.CharField('購物車編號',max_length=30,primary_key=True)
-    uid = models.OneToOneField(
+    uid = models.ForeignKey(
         Member,
         on_delete=models.CASCADE,
         primary_key=False,
@@ -19,7 +19,7 @@ class Cart(models.Model):
 
 class Order(models.Model):
     """訂單"""
-    oid = models.CharField('訂單編號',max_length=50)
+    oid = models.CharField('訂單編號',max_length=50,primary_key=True)
     uid = models.ForeignKey( Member , verbose_name=("會員編號"), on_delete=models.CASCADE)
     order_time = models.DateTimeField(("訂購時間"), auto_now=False, auto_now_add=False)
     complete_time = models.DateTimeField(("完成時間"), auto_now=False, auto_now_add=False)
@@ -28,7 +28,7 @@ class Order(models.Model):
 
 class OrderFood(models.Model):
      """訂單詳細"""
-     oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=True)
+     oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=False)
      gid = models.ForeignKey( Goods , verbose_name='商品編號', on_delete=models.CASCADE)
      quantity = models.IntegerField('餐點數量',null = False)
      discount = models.IntegerField('折扣',null=False)

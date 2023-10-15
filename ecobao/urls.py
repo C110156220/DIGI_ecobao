@@ -5,11 +5,13 @@ from django.urls import path
 import data_maintenance.views as dv
 import goods.views as goodv
 import activity.views as actv
+import order.views as orv
 # router settings
 from rest_framework import routers
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
+    TokenVerifyView
 )
 
 router = routers.SimpleRouter()
@@ -22,8 +24,9 @@ router.register(r'Goods',goodv.Goods_Viewset,basename='good')
 router.register(r'store_data/goods',goodv.Goods_Upload_Viewsets,basename='Store_data_aboutGoods')
 router.register(r'news',actv.Activity_Get_APIViews,basename='news')
 router.register(r'Evaluate',goodv.Evaluate_store_Viewset,basename='評論')
-
+router.register(r'cart',orv.CartViewset,basename="購物車")
 urlpatterns = [
+    path('api/token/verify/',TokenVerifyView.as_view(),name='token'),
     path('api/token/obtain/',TokenObtainPairView.as_view(),name='token'),
     path('api/token/refresh/',TokenRefreshView.as_view(),name='token'),
     path('Member/login/',dv.Member_LoginAPIViews.as_view(),name="login"),
@@ -32,6 +35,12 @@ urlpatterns = [
 
 urlpatterns += router.urls
 
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    # 只有在開發模式下使用static.serve視圖
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 # urlpatterns = [
