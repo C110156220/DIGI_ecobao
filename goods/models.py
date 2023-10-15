@@ -1,5 +1,5 @@
 from django.db import models
-from data_maintenance.models import Store
+from data_maintenance.models import Store,Member
 # Create your models here.
 class Goods(models.Model):
     gid = models.CharField("商品編號", max_length=30,primary_key=True)
@@ -22,8 +22,10 @@ class Goods(models.Model):
 class Evaluate(models.Model):
     evaid = models.CharField("留言編號",max_length=30,primary_key=True)
     sid = models.ForeignKey(Store, on_delete=models.CASCADE,null=True)
+    uid = models.ForeignKey(Member, on_delete=models.CASCADE,null=True)
     star = models.IntegerField('分數')
-    explain = models.CharField("心得或改進",max_length=100,blank=True)
+    explain = models.CharField("心得或改進",max_length=100,blank=True,null=True)
+    date = models.DateField('填寫時間',auto_now_add=True,null=True)
 
     def __str__(self):
         return "編號:{}，店家：{}，分數：{}".format(self.evaid,self.sid,self.star)

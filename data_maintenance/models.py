@@ -96,14 +96,18 @@ class Store(models.Model):
     )
     type = models.CharField("食物類型",max_length=30)
     name = models.CharField("店家名稱", max_length=50)
-    intro = models.CharField("店家簡介", max_length=50)
-    area = models.CharField('所在區域',max_length=40)
+    phone = models.CharField("店家電話", max_length=50,null=True)
+    email = models.CharField("電子信箱",max_length=50,null=True)
+    intro = models.CharField("店家簡介", max_length=50,null=True)
+    area = models.CharField('所在區域',max_length=40,null=True)
     address = models.CharField("店家地址",max_length=50)
     pic = models.ImageField("店家照片", upload_to='assets/Store',null=True)
     lng = models.FloatField("經度")
     lat = models.FloatField("緯度")
-    link = models.CharField("社群連結", max_length=50,null=True)
+    link_fb = models.CharField("社群連結_FB", max_length=100,null=True)
+    link_ig = models.CharField("社群連結_IG", max_length=100,null=True)
     on_business = models.BooleanField('是否營業')
+
     def __str__(self):
         return f"店家{self.name}"
 
