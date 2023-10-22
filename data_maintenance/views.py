@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from rest_framework.renderers import JSONRenderer
 from rest_framework.views import APIView
+# from django.contrib.auth.mixins import
 # 驗證密碼
 from django.contrib.auth.hashers import make_password,check_password
 from django.contrib.auth.models import User
@@ -200,9 +201,13 @@ class Store_search_Viewset(viewsets.ModelViewSet):
     @action(methods=['get','post'], detail=False,permission_classes = [AllowAny],authentication_classes=[])
     def type(self,request):
         """取得該地區的店家"""
-        if request.GET.get('type','') == "" or request.GET.get('type','') == None:
+        type = request.GET.get('type','')
+        if type == "" or type == None:
             return Response(status=404,data="未給予搜尋的資料")
-        data = Store.objects.filter(type = request.GET.get('type',''))
+        if type =="all":
+            data = Store.objects.all()
+        else:
+            data = Store.objects.filter(type = request.GET.get('type',''))
         serializer = StoreSerializers(data,many=True)
         return JSONResponse(serializer.data)
 
@@ -257,8 +262,11 @@ class Store_search_Viewset(viewsets.ModelViewSet):
         sid = Store.objects.get(sid=sid)
         from django.db.models import Sum
         import math
-        total_score_for_sid = models.Evaluate.objects.filter(sid=sid).aggregate(total_score=Sum('star'))['total_score']/models.Evaluate.objects.filter(sid=sid).count()
-        return(Response(status=200,data={'rating':math.floor(total_score_for_sid)}))
+        try:
+            total_score_for_sid = models.Evaluate.objects.filter(sid=sid).aggregate(total_score=Sum('star'))['total_score']/models.Evaluate.objects.filter(sid=sid).count()
+            return(Response(status=200,data={'rating':math.floor(total_score_for_sid)}))
+        except:
+            return(Response(status=200,data={'rating':0}))
 
     @action(methods=['get'], detail=False,permission_classes=[AllowAny],authentication_classes=[])
     def id(self,request):
@@ -302,6 +310,21 @@ class Store_search_Viewset(viewsets.ModelViewSet):
 class Store_data_Viewset(viewsets.ModelViewSet):
     querysets = Store.objects.all()
     serializer_class = StoreSerializers
+    @action(methods=['get'] , detail=False ,permission_classes=[IsAuthenticated])
+    def food(self,request):
+        from goods.models import Goods
+        from goods.serializers import Goods_serializers
+        uid = request.user.uid
+        goods = Goods.objects.filter(sid_id=uid)
+        serializer = Goods_serializers(goods,many=True)
+        return(Response(status=200,data=serializer.data))
+
+    @action(methods=['get'] , detail=False ,permission_classes=[IsAuthenticated])
+    def get(self,request):
+        uid = request.user.uid
+        ob = Store.objects.filter(upid_id = uid)
+        serializer = StoreSerializers(ob,many=True)
+        return(Response(status=200,data=serializer.data))
 
     @action(methods=['post'] , detail=False ,permission_classes=[IsAuthenticated])
     def register(self,request):
@@ -309,25 +332,42 @@ class Store_data_Viewset(viewsets.ModelViewSet):
         uid = request.user.uid
         if uid == "" or uid == None :
             return Response(status=400,data="資料未給予")
-        memob = MemberP.objects.filter(uid = request.data.get('uid'))
+        memob = MemberP.objects.filter(uid = uid)
         if (memob.count() != 1):
             return Response(status=400,data="account not found")
-        if Store.objects.filter(upid=memob).count() == 1:
-            return(Response(status=HTTP_203_NON_AUTHORITATIVE_INFORMATION,data="已經註冊搂!"))
+        if Store.objects.filter(upid=uid).count() == 1:
+            return(Response(status=400,data="已經註冊搂!"))
         data = {}
+        data['type'] = request.data.get('type','')
         data['name'] = request.data.get('name','')
-        data['intro'] = request.data.get('intro','')
-        data['area'] = request.data.get('area','')
+        data['email'] = request.data.get('email','')
+        data['phone'] = request.data.get('phone')
         data['address'] = request.data.get('address','')
-        data['link'] = request.data.get('link','')
-        data['on_business'] = request.data.get('on_business',False)
+        try:
+            pic = request.data.get('pic','')
+            if pic != '':
+                image_data = PicSafe(pic,'Store')
+            else:
+                image_data = pic
+        except Exception as e:
+            print(e)
+            print('pic not upload')
 
+        print(data['address'])
+        data['on_business'] = False
+        area = data['address'].split('區')[0]
+        if "市" in data['address'] :
+            city = data['address'].split('市')[0]
+            data['city'] = city[-2:]
+        elif "縣" in data['address'] :
+            city = data['address'].split('縣')[0]
+            data['city'] = city[-2:]
+        data['area'] = area[-2:]
         google_data = self.__getlatlng(data['address'])
         if google_data:
             data['lng'] = google_data['lng']
             data['lat'] = google_data['lat']
-            account_info = MemberP.objects.get(uid = uid)
-            if self.__new_account(data,account_info):
+            if self.__new_account(data,uid,image_data):
                 return Response(status=200,data="success")
             else:
                 return Response(status=500,data="新增失敗，請洽系統管理")
@@ -335,62 +375,69 @@ class Store_data_Viewset(viewsets.ModelViewSet):
             return(Response(status=400,data="地址未找到任何記錄"))
 
     @action(methods=['get'],detail = False,permission_classes=[IsAuthenticated])
-    def delit(self,request):
-        pass
-    # @action(methods=['post'],detail= False)
+    def close(self,request):
+        uid = request.user.uid
+        if Member.objects.filter(uid=uid).count() != 1 :
+            return(Response(status=404,data="帳號?"))
+        try:
+            ob = Store.objects.get(upid = uid)
+            ob.status = False
+            return(Response(status=HTTP_202_ACCEPTED,data="success"))
+        except Store.DoesNotExist:
+            return(Response(status=400,data="店家?"))
 
     @action(methods=['post'] , detail=False,permission_classes=[IsAuthenticated])
-    def upd(self,request):
+    def change(self,request):
         uid = request.user.uid
         if uid == "" or uid == None :
             return Response(status=400,data="資料未給予")
-        if (MemberP.objects.filter(uid = request.data.get('uid')).count() != 1):
+        if (MemberP.objects.filter(uid = uid).count() != 1):
             return Response(status=400,data="account not found")
-        # 資料驗證
-        data = {}
-        data['type'] = request.data.get('type','')
-        data['name'] = request.data.get('name','')
-        data['intro'] = request.data.get('intro','')
-        data['area'] = request.data.get('area','')
-        data['address'] = request.data.get('address','')
-        data['lng'] = request.data.get('lng','')
-        data['lat'] = request.data.get('lat','')
-        data['link'] = request.data.get('link','')
-        data['on_business'] = request.data.get('on_business','')
+        try:
+            pic = request.data.get('pic','')
+            if pic != '':
+                image_data = PicSafe(pic,'Store')
+            else:
+                image_data = pic
+        except:
+            print('照片未傳送')
 
-            # if '' in data or None in data :
-            #     return Response(status=404,data='未給予資料')
+        try:
+            from django.core.files.base import ContentFile
+            ob = Store.objects.get(upid = uid)
+            ob.intro = request.data.get('intro','')
+            ob.pic = image_data
+            ob.link_fb = request.data.get('link_fb','')
+            ob.link_ig = request.data.get('link_ig','')
+            ob.on_business = request.data.get('on_business',True)
+            ob.save()
+            return(Response(status=200,data="success"))
+        except Store.DoesNotExist:
+            return(Response(status=404,data="店家未知"))
 
-        if (MemberP.objects.filter(uid = data['upid']).count() != 1):
-            return Response(status=404,data="account not found")
 
-        upd_data = Store.objects.get(sid = data['sid'])
-        upd_data.type = data['type']
-        upd_data.name = data['name']
-        upd_data.intro =  data['intro']
-        upd_data.area = data['area']
-        upd_data.address = data['address']
-        upd_data.lng = data['lng']
-        upd_data.lat = data['lat']
-        upd_data.link = data['link']
-        upd_data.on_business = data['on_business']
-        upd_data.save()
+
 
     # in
-    def __new_account(self,dict,member_obj):
+    def __new_account(self,dict,member_obj,image=None):
+        from django.core.files.base import ContentFile
         try:
-            sid = "S{0:08d}".format(Store.objects.get('sid'))
+            sid = "S{0:08d}".format(Store.objects.all().count()+3)
             new_ob = Store(
                 sid = sid ,
-                upid = member_obj,
+                upid_id = member_obj,
                 type = dict['type'],
                 name = dict['name'],
-                intro = dict['intro'],
+                # intro = dict['intro'],
+                city = dict['city'],
                 area = dict['area'],
                 address = dict['address'],
                 lng = dict['lng'],
                 lat = dict['lat'],
-                link = dict['link'],
+                pic = image,
+                phone = dict['phone'],
+                email = dict['email'],
+                # link = dict['link'],
                 on_business = dict['on_business']
             )
             new_ob.save()
@@ -399,7 +446,7 @@ class Store_data_Viewset(viewsets.ModelViewSet):
             print(e)
             return False
 
-    def __getlatlng(address = ''):
+    def __getlatlng(self,address = ''):
         import requests
         if address == '':
             return(print('未輸入地址'))
@@ -453,14 +500,17 @@ class Member_LoginAPIViews(APIView):
             return(Response(status=404,data='帳號密碼錯誤'))
 # 店家驗證
 class Store_LoginAPIViews(APIView):
-    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated],)
-    def switch(self,request):
-        user = request.user.uid
-        user = Member.objects.filter(uid_id = user)
+    serializer_class = StoreSerializers
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser,]
+
+    def get(self,request):
+        user1 = request.user.uid
+        user = Member.objects.filter(uid_id = user1)
         if user.count() != 1 :
             return Response(status=400,data="未知帳號")
         try:
-            ob = Store.objects.filter(upid_id = user)
+            ob = Store.objects.filter(upid_id = user1)
             if ob.count() == 1:
                 return(Response(status=200,data="歡迎{}，請繼續提供美味的食物！".format(ob[0].name)))
         except Store.DoesNotExist:
@@ -563,5 +613,24 @@ class Member_register_APIViews(viewsets.ModelViewSet):
             print(e)
             return False
 
+def PicSafe(decodetext,target):
+        try:
+            import base64,uuid
+            from django.core.files.base import ContentFile
+        # 將Base64數據解碼
+            image_data = base64.b64decode(decodetext)
 
-#
+            # 創建文件對象
+            image_file = ContentFile(image_data)
+
+            # 在media目錄下創建一個唯一的文件名，或者使用您自己的文件命名邏輯
+            file_name = str(uuid.uuid4())
+
+            address = 'assets/{}/'.format(target) + file_name
+            # 將文件保存到media目錄
+            with open(address, 'wb') as f:
+                f.write(image_file.read())
+            return address
+        except Exception as e:
+            print(e)
+            return False

@@ -54,3 +54,5 @@ class StoreSerializers(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = "__all__"
+class StoreInputSerializers(serializers.Serializer):
+    type = serializers.CharField(source="data['y]")

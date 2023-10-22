@@ -22,7 +22,7 @@ class Order(models.Model):
     oid = models.CharField('訂單編號',max_length=50,primary_key=True)
     uid = models.ForeignKey( Member , verbose_name=("會員編號"), on_delete=models.CASCADE)
     order_time = models.DateTimeField(("訂購時間"), auto_now=False, auto_now_add=False)
-    complete_time = models.DateTimeField(("完成時間"), auto_now=False, auto_now_add=False)
+    complete_time = models.DateTimeField(("完成時間"), auto_now=False, auto_now_add=False,null=True)
     total = models.CharField('訂單總額',max_length=50)
     status = models.CharField('訂單狀態',max_length=50)
 
