@@ -67,7 +67,6 @@ class JSONResponse(HttpResponse):
 class Goods_Viewset(viewsets.ModelViewSet):
     serializer_class = Goods_serializers
 
-
     @action(methods=['get'],detail=False,permission_classes=[AllowAny],authentication_classes=[])
     def store(self,request):
         sid = request.GET.get('sid','')
@@ -129,6 +128,10 @@ class Goods_Upload_Viewsets(viewsets.ModelViewSet):
         serializer = Goods_input_serializers(data = request.data)
         if serializer.is_valid():
             data = request.data
+            if data['food_pic'] != None:
+                pic = PicSave(data['food_pic'],'good')
+            else:
+                pic = None
             try:
                 ob = Goods.objects.create(
                     gid = "G{0:05d}".format(Goods.objects.all().count() + 3),
@@ -137,10 +140,11 @@ class Goods_Upload_Viewsets(viewsets.ModelViewSet):
                     name = data['name'],
                     intro = data['intro'],
                     quantity = data['quantity'],
-                    food_pic = data['food_pic'],
+                    food_pic = pic,
                     price = data['price'],
                     ingredient = data['ingredient'],
-                    allergen = data['allergen']
+                    allergen = data['allergen'],
+                    status = data['status']
                 )
                 ob.save()
                 return(res().Success())
@@ -155,28 +159,61 @@ class Goods_Upload_Viewsets(viewsets.ModelViewSet):
             return(Response(status=400,data=errors))
 
 
-    @action(methods=['post'],detail=False)
+    @action(methods=['post'],detail=False , permission_classes=[IsAuthenticated|AllowAny])
     def change(self,request):
+        """編輯"""
         uid = request.user.uid
-        if Store.objects.filter(upid = uid).count() != 1:return(res().dataError())
+        print(uid)
+        if Store.objects.filter(upid_id = uid).count() != 1:return(res().dataError())
         serializer = Goods_input_serializers(data = request.data)
         if serializer.is_valid():
-            pass
+            ob = Goods.objects.get(gid = request.data.get('gid',''))
+            ob.type = request.data['type']
+            ob.quantity = request.data['quantity']
+            ob.price = request.data['price']
+            ob.ingredient = request.data['ingredient']
+            ob.save()
+            return(Response(status=200,data="success"))
         else:
             return(res().dataError())
 
     @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
     def delete(self,request):
+        """刪除"""
+        uid = request.user.uid
         gid = request.data.get('gid','')
         if gid != '':
-            if Goods.objects.filter(gid=gid).count() != 1 :
+            if Goods.objects.filter(gid=gid,sid_id = uid).count() != 1 :
                 return(Response(status=400,data="NotFound商品"))
         else:
            return(Response(status=400,data="商品編號未知"))
         ob = Goods.objects.get(gid=gid)
         ob.delete()
         return(Response(status=200,data="Success"))
-
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
+    def unavailable(self,request):
+        uid = request.user.uid
+        print(uid)
+        if Store.objects.filter(upid_id = uid).count() != 1:return(res().dataError())
+        try:
+            ob = Goods.objects.get(gid=request.data['gid'])
+            ob.status = False
+            ob.save()
+        except Goods.DoesNotExist:
+            return(Response(status=404,data="未知商品"))
+        return(Response(status=200,data="success"))
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
+    def available(self,request):
+        uid = request.user.uid
+        print(uid)
+        if Store.objects.filter(upid_id = uid).count() != 1:return(res().dataError())
+        try:
+            ob = Goods.objects.get(gid=request.data['gid'])
+            ob.status = True
+            ob.save()
+        except Goods.DoesNotExist:
+            return(Response(status=404,data="未知商品"))
+        return(Response(status=200,data="success"))
 
 class Evaluate_store_Viewset(viewsets.ModelViewSet):
     @action(methods=['POST'],detail=False,permission_classes=[IsAuthenticated])
@@ -239,3 +276,23 @@ class Evaluate_store_Viewset(viewsets.ModelViewSet):
         import math
         total_score_for_sid = Evaluate.objects.filter(sid=sid).aggregate(total_score=Sum('star'))['total_score']/Evaluate.objects.filter(sid=sid).count()
         return(Response(status=200,data={'rating':math.floor(total_score_for_sid)}))
+
+
+def PicSave(decodetext,target):
+
+            import base64,uuid
+            from django.core.files.base import ContentFile
+        # 將Base64數據解碼
+            image_data = base64.b64decode(decodetext.strip())
+
+            # 創建文件對象
+            image_file = ContentFile(image_data)
+
+            # 在media目錄下創建一個唯一的文件名，或者使用您自己的文件命名邏輯
+            file_name = str(uuid.uuid4())
+
+            address = '{}/'.format(target) + file_name
+            # 將文件保存到media目錄
+            with open(address, 'wb') as f:
+                f.write(image_data)
+            return address

@@ -25,7 +25,7 @@ class Activity_Get_APIViews(viewsets.ModelViewSet):
     serializer_class = Activity_serializers
     queryset = Activity.objects.all()
 
-    @action(methods=['get'],permission_classes=[AllowAny],detail=False)
+    @action(methods=['get'],permission_classes=[AllowAny],detail=False,authentication_classes=[])
     # @ratelimit(key='ip', rate='8/m', method='ALL', block=True)
     def all(self,request):
         """取得所有文章"""
@@ -33,7 +33,7 @@ class Activity_Get_APIViews(viewsets.ModelViewSet):
         serializer = Activity_serializers(article,many=True)
         return(JsonResponse(serializer.data,safe=False))
 
-    @action(methods=['get'],permission_classes=[AllowAny],detail=False)
+    @action(methods=['get'],permission_classes=[AllowAny],detail=False,authentication_classes=[])
     # @ratelimit(key='ip', rate='8/m', method='ALL', block=True)
     def one(self,request):
         """取得該ID的文章"""

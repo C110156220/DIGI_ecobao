@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 MEDIA_URL = '/assets/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'assets')
 
@@ -69,8 +70,11 @@ REST_FRAMEWORK = {
 # JWT設計
 from datetime import timedelta
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # 設定JWT Token的有效期
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_REFRESH_LIFETIME_LAMBDA': lambda token: token.access_token.lifetime,
+    'SLIDING_TOKEN_LIFETIME_LAMBDA': lambda token: token.access_token.lifetime,
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'AUTH_HEADER_TYPES':('Bearer', 'JWT'),
     "ALGORITHM":"HS256",
