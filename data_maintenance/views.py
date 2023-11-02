@@ -246,7 +246,7 @@ class Store_search_Viewset(viewsets.ModelViewSet):
         else:
             l = eval(ob[0].prefer)
             try:
-                res = Store.objects.filter(type__in=l)
+                res = Store.objects.filter(type__in=l)[:12]
             except Store.DoesNotExist:
                 return (Response(status=404, data="未找到任何條件"))
 
