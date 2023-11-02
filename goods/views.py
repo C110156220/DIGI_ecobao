@@ -130,6 +130,8 @@ class Goods_Upload_Viewsets(viewsets.ModelViewSet):
             data = request.data
             if data['food_pic'] != None:
                 pic = PicSave(data['food_pic'],'good')
+                if pic == "base64 error" or pic == False:
+                    return(Response(status=400,data="照片儲存失敗，請確認編碼"))
             else:
                 pic = None
             try:
@@ -218,20 +220,42 @@ class Goods_Upload_Viewsets(viewsets.ModelViewSet):
 class Evaluate_store_Viewset(viewsets.ModelViewSet):
     @action(methods=['POST'],detail=False,permission_classes=[IsAuthenticated])
     def new(self,request):
-        sid =request.data.get('sid','')
-        if Store.objects.filter(upid=sid).count() != 1:
-            return(Response(status=404,data="未知餐廳"))
-        evaid = "EV{0:05d}".format(Evaluate.objects.all().count() + 2)
-        if Evaluate.objects.filter(evaid=evaid).count() == 1:
-            evaid = "EV{0:05d}".format(Evaluate.objects.all().count() + 4)
-        ob = Evaluate.objects.create(
-            evaid = evaid,
-            sid_id = sid,
-            star = request.data.get('star',''),
-            explain = request.data.get('explain','')
-        )
-        ob.save()
-        return Response(status=200,data="success")
+        from order.models import Order ; from order.serializers import Order_output_Serializer
+
+        oid =request.data.get('oid','')
+        if oid == '':
+            return(Response(status=404,data="參數?"))
+        try:
+            ob = Order.objects.filter(oid = oid)
+            ser = Order_output_Serializer(ob,many = True)
+            sid = []
+            for i in ser.data[0]['orderfoods']:
+                sid.append(i['sid'])
+            if len(set(sid)) == 1:
+                ok = True
+            else:
+                ok = False
+        except Order.DoesNotExist:
+            return(Response(status=404,data="未與資料庫匹配"))
+        except Exception as e :
+            print(e)
+            return(Response(status=500,data="系統出錯，請洽詢後端"))
+        if ok:
+            evaid = "EV{0:05d}".format(Evaluate.objects.all().count() + 2)
+            if Evaluate.objects.filter(evaid=evaid).count() == 1:
+                evaid = "EV{0:05d}".format(Evaluate.objects.all().count() + 4)
+
+            ob = Evaluate.objects.create(
+                evaid = evaid,
+                sid = Store.objects.get(sid=sid[0]),
+                star = request.data.get('star',''),
+                explain = request.data.get('explain',''),
+                uid_id = request.user.uid
+            )
+            ob.save()
+            return Response(status=200,data="success")
+        else:
+            return(Response(status=400,data="訂單涵蓋多店家"))
 
     @action(methods=['GET'],detail=False,permission_classes=[AllowAny],authentication_classes=[])
     def store(self,request):
@@ -279,20 +303,32 @@ class Evaluate_store_Viewset(viewsets.ModelViewSet):
 
 
 def PicSave(decodetext,target):
-
-            import base64,uuid
+            from PIL import Image
+            import base64,uuid,os
             from django.core.files.base import ContentFile
-        # 將Base64數據解碼
-            image_data = base64.b64decode(decodetext.strip())
-
+            from ecobao.settings import MEDIA_ROOT
+            # 將Base64數據解碼
+            try:
+                image_data = base64.b64decode(decodetext.split(',')[1])
+            except base64.binascii.Error:
+                return("base64 error")
             # 創建文件對象
-            image_file = ContentFile(image_data)
-
+            try:
             # 在media目錄下創建一個唯一的文件名，或者使用您自己的文件命名邏輯
-            file_name = str(uuid.uuid4())
-
-            address = '{}/'.format(target) + file_name
+                file_name = str(uuid.uuid4())
+                img_url = os.path.join(MEDIA_ROOT,'{}/{}.png'.format(target,file_name))
+                # address = '/assets/{}/{}.png'.format(target,file_name)
+                image_file = ContentFile(image_data,name="{}.png".format(file_name))
+                # with open(img_url,'wb') as f:
+                #     f.write(image_data)
+                return image_file
+            except Exception as e:
+                print("Error in creating Image file -> {}".format(e))
+                return False
             # 將文件保存到media目錄
-            with open(address, 'wb') as f:
-                f.write(image_data)
-            return address
+            # try:
+            #     img_PIL = Image.open(address)
+            #     print(img_PIL)
+            # except Exception as e:
+            #     print(e)
+            #     return False

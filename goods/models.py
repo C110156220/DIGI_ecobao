@@ -8,7 +8,7 @@ class Goods(models.Model):
     name = models.CharField("商品名稱", max_length=30)
     intro = models.CharField("商品簡介", max_length=50, null=True)
     quantity = models.CharField("商品數量", default="1", null=False, max_length=10)
-    food_pic = models.ImageField("商品照片", upload_to='assets/good', null=True)
+    food_pic = models.ImageField("商品照片", upload_to='good', null=True)
     price = models.CharField("價格", default="50", null=False, max_length=10)
     ingredient = models.CharField("食物使用成分", max_length=200)
     allergen = models.CharField("過敏原成分", max_length=200)
@@ -16,6 +16,10 @@ class Goods(models.Model):
 
     def __str__(self):
         return "編號:{}，名稱:{}".format(self.gid,self.name)
+    def food_pic_url(self):
+        """用於將照片儲存"""
+        if self.food_pic and hasattr(self.food_pic,'url'):
+            return self.food_pic.url
 
     # USERNAME_FIELD = "gid"
 

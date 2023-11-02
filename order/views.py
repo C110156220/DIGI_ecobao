@@ -15,47 +15,118 @@ from data_maintenance.models import MemberP
 from goods.views import res
 
 
+class Order_read_Viewset(viewsets.ModelViewSet):
+    serializer_class = Order_output_Serializer
+    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated])
+    def all(self, request):
+        uid = request.user.uid
+        if Member.objects.filter(uid=uid).count() != 1:
+            return Response(status=404, data="未知帳號")
+        from django.shortcuts import get_object_or_404
+        member = get_object_or_404(Member, uid=uid)
+
+        # 查询该会员的订单信息
+        orders = Order.objects.filter(uid=member).prefetch_related('orderfoods', 'orderpayments')
+        # 使用序列化器将订单数据序列化
+        order_data = Order_output_Serializer(orders, many=True).data
+
+            # 返回结果给前端
+        if not order_data:  # 使用空列表作为条件判断
+            return Response(status=202, data="會員未建立任何訂單紀錄")
+        else:
+            return Response(status=200, data=order_data)
+
+    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated])
+    def status(self,request):
+        uid = request.user.uid
+        if Member.objects.filter(uid=uid).count() != 1:
+            return Response(status=404, data="未知帳號")
+        if request.GET.get('status','') == '':
+            return Response(status=404, data="參數?")
+        from django.shortcuts import get_object_or_404
+        member = get_object_or_404(Member, uid=uid)
+        orders = Order.objects.filter(uid=member,status=request.GET.get('status')).prefetch_related('orderfoods', 'orderpayments')
+        # 使用序列化器将订单数据序列化
+        order_data = Order_output_Serializer(orders, many=True).data
+        if not order_data:  # 使用空列表作为条件判断
+            return Response(status=202, data="會員未建立任何訂單紀錄")
+        else:
+            return Response(status=200, data=order_data)
+
+
 
 class OrderViewset(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
-    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated])
-    def record(self,request):
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
+    def complete(self,request):
+        try:
+            oid = request.data.get('oid')
+            if oid == None:
+                return(Response(status=404,data="訂單?"))
+            Order_ob = Order.objects.get(oid=oid)
+            Order_ob.status = "已完成"
+            Order_ob.save()
+            return(Response(status=200,data="success"))
+        except Order.DoesNotExist:
+            return(Response(status=404,data="無訂單紀錄"))
+        except Exception as e:
+            return(Response(status=500,data="系統出錯，請洽後端，問題：{}".format(e)))
+
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
+    def cancel(self,request):
+        try:
+            oid = request.data.get('oid')
+            if oid == None:
+                return(Response(status=404,data="訂單?"))
+            Order_ob = Order.objects.get(oid=oid)
+            Order_ob.status = "已取消"
+            Order_ob.save()
+            OrderCancel(
+                oid = oid,
+                # type = request.data.get('type')
+                msg = request.data.get('msg','')
+            ).save()
+            return(Response(status=200,data="success"))
+        except Order.DoesNotExist:
+            return(Response(status=404,data="無訂單紀錄"))
+        except Exception as e:
+            return(Response(status=500,data="系統出錯，請洽後端，問題：{}".format(e)))
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
+    def accept(self,request):
         uid = request.user.uid
-        if MemberP.objects.filter(uid = uid).count() != 1:
-            return Response(status=404,data="未知帳號")
-        ob = MemberP.objects.get(uid=uid)
-        status = request.GET.get('status','')
-        if  status != '':
-            data_order = Order.objects.filter(uid_id = ob , status=status)
-        else:
-            data_order = Order.objects.filter(uid_id = ob)
-            try:
-                oid = list(data_order.oid_id)
-                print(oid)
-            except Exception as e:
-                print(e)
-                return(Response(status=500,data=e))
+        try:
+            oid = request.data.get('oid')
+            if oid == None:
+                return(Response(status=404,data="訂單?"))
+            Order_ob = Order.objects.get(oid=oid)
+            Order_ob.status = "已接單"
+            Order_ob.save()
+            return(Response(status=200,data="success"))
+        except Order.DoesNotExist:
+            return(Response(status=404,data="無訂單紀錄"))
+        except Exception as e:
+            print(e)
+            return(Response(status=500,data="系統出錯，請洽後端，問題：{}".format(e)))
 
-            # data_food = OrderFood.objects.filter(oid_id = record.oid for record in data_order)
-            # data_payment = OrderPayment.objects.filter(oid_id = oid)
-
-    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated])
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
     def change(self, request):
         """更新訂單"""
         try:
             oid = request.data.get('oid','')
+            reason = request.data.get('reason','')
             if oid == "": return(Response())
             order = Order.objects.get(oid=oid)
             serializer = OrderSerializer(order, data=request.data)
+            order_cancel_seri = OrderCancel
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Order.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
     def delete(self, request):
         try:
             uid = request.user.uid
@@ -67,6 +138,21 @@ class OrderViewset(viewsets.ModelViewSet):
             return Response(status=status.HTTP_200_OK,data="success")
         except Order.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND,data="沒資料")
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
+    def notice(self, request):
+        try:
+            oid = request.data.get('oid')
+            if oid == None:
+                return(Response(status=404,data="訂單?"))
+            Order_ob = Order.objects.get(oid=oid)
+            Order_ob.status = "未取餐"
+            Order_ob.save()
+            return(Response(status=200,data="success"))
+        except Order.DoesNotExist:
+            return(Response(status=404,data="無訂單紀錄"))
+        except Exception as e:
+            print(e)
+            return(Response(status=500,data="系統出錯，請洽後端，問題：{}".format(e)))
 
     @action(detail=False, methods=['post'],permission_classes=[IsAuthenticated])
     def add(self,request):
@@ -88,7 +174,7 @@ class OrderViewset(viewsets.ModelViewSet):
                     total += int(cart_item.price) * cart_item.quantity
                 if Member.objects.filter(uid = request.user.uid).count() != 1:
                     return(Response(status=400,data="人?"))
-                oid = "OD{0:06d}".format(Order.objects.all().count()+12)
+                oid = "OD{0:06d}".format(Order.objects.all().count()+14)
                 # 创建订单
                 order_data = {
                     'oid': oid,
@@ -152,7 +238,7 @@ class OrderViewset(viewsets.ModelViewSet):
 
         except Exception as e:
             # 处理错误，例如记录日志或发送通知
-            return Response(f"发生错误：{e}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(f"發生錯誤：{e}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
@@ -218,22 +304,18 @@ class CartViewset(viewsets.ModelViewSet):
         member = MemberP.objects.filter(uid=uid)
         if member.count() != 1:
             return(Response(status=404,data="未知帳號"))
+
         try:
-            gid = request.data.get('gid','')
-            if Goods.objects.filter(gid=gid).count() != 1:
-                return(Response(status=404,data="未知商品"))
-        except Goods.DoesNotExist:
-                return(Response(status=404,data="未知商品"))
-        try:
-            Cart_data = Cart.objects.get(uid_id=uid,gid_id=gid)
+            Cart_data = Cart.objects.get(cart_id = request.data.get('cart_id',''))
             quantity= request.data.get('quantity','')
             if quantity == '': return(Response(status=400,data="數量?"))
             else:
-                Cart_data.quantity= str(int(Cart_data.quantity) + int(quantity))
+                Cart_data.quantity= str(quantity)
                 Cart_data.save()
                 return(Response(status=200,data="success"))
         except Cart.DoesNotExist:
             return(Response(status=404,data="未知購物車"))
+
     @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
     def delete(self,request):
         uid = request.user.uid ; cart_id = request.data.get('cart_id','')
@@ -257,14 +339,50 @@ class CartViewset(viewsets.ModelViewSet):
         serializer = Cart_serializer(ob,many=True)
         return(Response(status=200,data=serializer.data))
 
-    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated])
+    @action(methods=['post'],detail=False,permission_classes=[IsAuthenticated])
     def getid(self,request):
         import json
         uid = request.user.uid
         if MemberP.objects.filter(uid=uid).count() != 1:
             return(Response(status=404,data="未知帳號"))
         # begin!
-        data_list = json.loads(request.data.get('data_list', '[]'))
+        data_list = request.data.get('cart_list', [])
         ob = Cart.objects.select_related('gid__sid').filter(cart_id=data_list)
         serializer = Cart_serializer(ob,many=True)
         return(Response(status=200,data=serializer.data))
+
+    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated])
+    def check(self,request):
+        uid = request.user.uid
+        if MemberP.objects.filter(uid=uid).count() != 1:
+            return(Response(status=404,data="未知帳號"))
+        # begin!
+        ob = Cart.objects.select_related('gid__sid').filter(uid_id=uid)
+        serializer = Cart_serializer(ob,many=True)
+        return(Response(status=200,data=serializer.data))
+
+    @action(methods=['get'],detail=False,permission_classes=[IsAuthenticated])
+    def check_info(self,request):
+        uid = request.user.uid
+        from django.db import transaction
+        with transaction.atomic():
+            try:
+                memob = Member.objects.get(uid = uid)
+                if not request.GET.get('cart_id'):
+                    ob = Cart.objects.filter(uid = memob,cart_id = request.data.get('cart_id'))
+                else:
+                    return(Response(status=404,data="未給予購物車編號"))
+                serializer = Cart_serializer(ob,many=True)
+                # 計算總total
+                total = 0
+                for item in serializer.data:
+                    total += (int(item['price'])*int(item['quantity']))
+                result = {'total':total,'data':serializer.data}
+                return(Response(status=200,data=result))
+            except Member.DoesNotExist:
+                return(Response(status=404,data="會員?"))
+            except Cart.DoesNotExist:
+                return(Response(status=404 , data="購物車未找到"))
+            except Exception as e :
+                print(e)
+                return(Response(status=500,data="出現問題，請洽後端，問題：{}".format(e)))

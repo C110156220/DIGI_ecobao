@@ -35,7 +35,16 @@ class Email:
         self.mail_info['subject'] = "<Ecobao>_訂單完成通知"
         html = Template(Path("template_notice.html").read_text(encoding='utf-8'))
         html = html.substitute()
-
+        data = {
+            'subject': data['subject'],
+            'name' : data['name'],
+            'order_id' : data['order_id'],
+            'order_time' : data['order_time'],
+            'order_store' : data['order_store'],
+            'order_complete_time' : data['order_complete_time'],
+            'order_price' : data['order_total_price'],
+            'data_food': data['data_food']
+        }
         self.mail_info.attach(MIMEText(html,"html",'utf-8'))
         self.send()
 
@@ -48,7 +57,7 @@ class Email:
         self.content['From'] = "robin92062574@gmail.com"
         self.content['To'] = to_email
         self.content['subject'] = "<Ecobao>_訂單傳送成功通知"
-        data = {
+        mail_data = {
             'subject': data['subject'],
             'name' : data['name'],
             'order_id' : data['order_id'],
