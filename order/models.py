@@ -28,7 +28,7 @@ class Order(models.Model):
 
 class OrderFood(models.Model):
      """訂單詳細"""
-     oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=False)
+     oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=False, related_name='orderfoods')
      gid = models.ForeignKey( Goods , verbose_name='商品編號', on_delete=models.CASCADE)
      quantity = models.IntegerField('餐點數量',null = False)
      discount = models.IntegerField('折扣',null=False)
@@ -36,9 +36,20 @@ class OrderFood(models.Model):
 
 class OrderPayment(models.Model):
     """付款方式"""
-    oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=True)
+    oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=True, related_name='orderpayments')
     method = models.CharField('方法',null=False,max_length=50)
     credit_number = models.CharField('信用卡號碼',null=True,blank=False,max_length=50)
     credit_private = models.CharField('授權碼',null=True,blank=False,max_length=50)
     credit_date_year = models.DateField('期限年',null=True,blank=False,max_length=50)
     credit_date_month = models.DateField('期限月',null=True,blank=False,max_length=50)
+
+class Ordercheck(models.Model):
+    """存取訂單核准代碼"""
+    oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=True,
+                            related_name='ordercheck')
+    checked = models.CharField("核准碼",max_length=10,null=False,blank=False)
+class OrderCancel(models.Model):
+    """紀錄訂單取消"""
+    oid = models.ForeignKey(Order,on_delete=models.CASCADE, unique=True,
+                            related_name='ordercancel')
+    msg = models.CharField("取消理由",max_length=100,blank=True,null=False)

@@ -54,6 +54,7 @@ class Member(models.Model):
     address = models.CharField("通訊住址", max_length=50)
     birth = models.DateField("生日")
     allergen = models.CharField('過敏原',max_length=30,blank=True)
+    prefer = models.CharField('偏好飲食',max_length=50,null=True)
     # blank 是否菲必填
     USERNAME_FIELD = "uid"
 

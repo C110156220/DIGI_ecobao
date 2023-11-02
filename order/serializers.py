@@ -1,19 +1,52 @@
 
 from rest_framework import serializers
 from .models import *
+
 class Cart_serializer(serializers.ModelSerializer):
     goods_name = serializers.SerializerMethodField()
     store_name = serializers.SerializerMethodField()
-
+    goods_price = serializers.SerializerMethodField()
+    subtotal = serializers.SerializerMethodField()
     class Meta:
         model = Cart
         fields = "__all__"
-
+    def get_subtotal(self,cart_item):
+        return cart_item.quantity * int(self.get_goods_price(cart_item))
     def get_goods_name(self, cart_item):
         return cart_item.gid.name
-
+    def get_goods_price(self,cart_item):
+        return cart_item.gid.price
     def get_store_name(self, cart_item):
         return cart_item.gid.sid.name
+
+class OrderPayment_output_Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderPayment
+        fields = "__all__"
+
+class OrderFood_output_Serializer(serializers.ModelSerializer):
+    store_name = serializers.SerializerMethodField()
+    sid = serializers.SerializerMethodField()
+    goods_price = serializers.SerializerMethodField()
+    goods_name = serializers.SerializerMethodField()
+    class Meta:
+        model = OrderFood
+        fields = "__all__"
+    def get_store_name(self, cart_item):
+        return cart_item.gid.sid.name
+    def get_goods_name(self, cart_item):
+        return cart_item.gid.name
+    def get_goods_price(self,cart_item):
+        return cart_item.gid.price
+    def get_sid(self,cart_item):
+        return cart_item.gid.sid.sid
+
+class Order_output_Serializer(serializers.ModelSerializer):
+    orderfoods = OrderFood_output_Serializer(many=True)
+    orderpayments = OrderPayment_output_Serializer(many=True)
+    class Meta:
+        model = Order
+        fields = '__all__'
 
 class OrderSerializer(serializers.Serializer):
     # 將 uid 和 oid 定義為 CharField
@@ -59,6 +92,7 @@ class OrderFoodSerializer(serializers.Serializer):
         )
         order.save()
         return order
+
 
 class OrderPaymentSerializer(serializers.Serializer):
     # 將 oid 定義為 CharField

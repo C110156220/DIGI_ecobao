@@ -26,6 +26,7 @@ router.register(r'news',actv.Activity_Get_APIViews,basename='新聞')
 router.register(r'Evaluate',goodv.Evaluate_store_Viewset,basename='評論')
 router.register(r'order',orv.OrderViewset,basename='訂單')
 router.register(r'cart',orv.CartViewset,basename="購物車")
+router.register(r'orderv',orv.Order_read_Viewset,basename='訂單查詢')
 
 urlpatterns = [
     path('api/token/verify/',TokenVerifyView.as_view(),name='token'),

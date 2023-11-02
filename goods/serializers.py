@@ -18,6 +18,13 @@ class Goods_input_serializers(serializers.Serializer):
     status = serializers.BooleanField(source='data[status]')
 
 class Evaluate_serializers(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
     class Meta:
         model = Evaluate
-        fields = ['evaid','star','explain']
+        fields = ['evaid','star','explain','date','uid_id','name']
+    def get_name(self,data):
+        try:
+            return(data.uid.name)
+        except Exception as e:
+            print(e)
+            return("遊客")

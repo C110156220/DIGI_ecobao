@@ -3,7 +3,7 @@ from .models import *
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-
+from django.contrib.auth import login
 class Member_TokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -11,6 +11,7 @@ class Member_TokenObtainPairSerializer(TokenObtainPairSerializer):
 
         token['uid'] = get_id(user.account)
         token['account'] = user.account
+        
 
         return token
 
