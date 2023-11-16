@@ -235,22 +235,30 @@ class Store_search_Viewset(viewsets.ModelViewSet):
     @action(methods=['get'], detail=False, permission_classes=[AllowAny], authentication_classes=[])
     def prefer(self, request):
         import random
-        uid = request.user.uid
         try:
+            uid = request.user.uid
             ob = Member.objects.filter(uid=uid)
+            login = True
         except Member.DoesNotExist:
             return (Response(status=404, data="未知帳號"))
+        except AttributeError:
+            login = False
+        except Exception as e :
+            print(e);login = False
 
-        if ob[0].prefer == None or ob[0].prefer == '':
-            res = Store.objects.all().order_by('?')[:10]
+        if login:
+            if ob[0].prefer == None or ob[0].prefer == '':
+                res = Store.objects.all().order_by('?')[:10]
+            else:
+                l = eval(ob[0].prefer)
+                try:
+                    res = Store.objects.filter(type__in=l).order_by('?')[:12]
+                except Store.DoesNotExist:
+                    return (Response(status=404, data="未找到任何條件"))
         else:
-            l = eval(ob[0].prefer)
-            try:
-                res = Store.objects.filter(type__in=l)[:12]
-            except Store.DoesNotExist:
-                return (Response(status=404, data="未找到任何條件"))
+            res = Store.objects.all().order_by('?')[:10]
 
-        ser = StoreSerializers(res)
+        ser = StoreSerializers(res,many=True)
         return (Response(status=200, data=ser.data))
 
     @action(methods=['get', 'post'], detail=False, permission_classes=[AllowAny], authentication_classes=[])
@@ -415,6 +423,7 @@ class Store_data_Viewset(viewsets.ModelViewSet):
                 image_data = PicSave(pic, 'Store')
             else:
                 image_data = pic
+
         except Exception as e:
             print(e)
             print('pic not upload')
@@ -462,7 +471,7 @@ class Store_data_Viewset(viewsets.ModelViewSet):
         try:
             pic = request.data.get('pic', '')
             if pic != '':
-                image_data = PicSave(pic, 'Store')
+                image_data = PicSave(pic,'Store')
             else:
                 image_data = pic
         except:
@@ -624,7 +633,7 @@ class Member_register_APIViews(viewsets.ModelViewSet):
     serializer_class = Data_Member_Serializers
     queryset = Member.objects.all()
 
-    @action(methods=['post'], detail=False, permission_classes=[AllowAny])
+    @action(methods=['post'], detail=False, permission_classes=[AllowAny],authentication_classes=[])
     def new(self, request):
         # 驗證資料
         data = {}

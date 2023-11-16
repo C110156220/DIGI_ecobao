@@ -72,10 +72,20 @@ class Goods_Viewset(viewsets.ModelViewSet):
         sid = request.GET.get('sid','')
         if sid == '' :
             return res().NotFound()
-        sid = Store.objects.get(sid=sid)
-        db_ob = Goods.objects.filter(sid_id = sid)
-        if db_ob.count() == 0 :
-           return res().dataError()
+        if False :
+            uid = request.user.uid
+            Mem_allergen = Member.objects.get(uid=uid).allergen
+            import json
+            db_ob = Goods.objects.filter(sid_id = sid).exclude(allergen=json.loads(Mem_allergen))
+            if db_ob.count() == 0 :
+                return res().dataError()
+            serializer = Goods_serializers(db_ob,many=True)
+            return(Response(status=200,data=serializer.data))
+        else:
+            sid = Store.objects.get(sid=sid)
+            db_ob = Goods.objects.filter(sid_id = sid)
+            if db_ob.count() == 0 :
+                return res().dataError()
         serializer = Goods_serializers(db_ob,many=True)
         return(Response(status=200,data=serializer.data))
 
