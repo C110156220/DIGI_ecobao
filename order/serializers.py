@@ -7,6 +7,8 @@ class Cart_serializer(serializers.ModelSerializer):
     store_name = serializers.SerializerMethodField()
     goods_price = serializers.SerializerMethodField()
     subtotal = serializers.SerializerMethodField()
+    store_phone = serializers.SerializerMethodField()
+    store_address = serializers.SerializerMethodField()
     class Meta:
         model = Cart
         fields = "__all__"
@@ -18,6 +20,10 @@ class Cart_serializer(serializers.ModelSerializer):
         return cart_item.gid.price
     def get_store_name(self, cart_item):
         return cart_item.gid.sid.name
+    def get_store_phone(self,cart_item):
+        return cart_item.gid.sid.phone
+    def get_store_address(self,cart_item):
+        return cart_item.gid.sid.address
 
 class OrderPayment_output_Serializer(serializers.ModelSerializer):
     class Meta:

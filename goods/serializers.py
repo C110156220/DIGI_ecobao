@@ -3,9 +3,12 @@ from rest_framework import serializers
 from .models import *
 
 class Goods_serializers(serializers.ModelSerializer):
+    #ifallergen = serializers.SerializerMethodField()
     class Meta:
         model = Goods
         fields = ['gid','type','name','intro','quantity','food_pic','price','ingredient','allergen','status']
+    # def get_ifallergen(self,data):
+    #
 
 class Goods_input_serializers(serializers.Serializer):
     type = serializers.CharField(source='data[type]')
