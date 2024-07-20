@@ -549,7 +549,7 @@ class Store_data_Viewset(viewsets.ModelViewSet):
         # 製作請求的參數
         params = {
             'address': address,
-            'key': '***REMOVED-GOOGLE-API-KEY***'
+            'key': "User_input!"
         }
         # 發送GET請求
         response = requests.get(geocoding_api_url, params=params)
