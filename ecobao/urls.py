@@ -45,19 +45,3 @@ from django.conf.urls.static import static
 if settings.DEBUG:
     # 只有在開發模式下使用static.serve視圖
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-
-# urlpatterns = [
-#     #Token
-#     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-#     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-#     # path('admin/', admin.s ite.urls),
-#     # # 登入/註冊
-#     path('s/login',dv.MemberLoginAPIViews.as_view(),name='member'),
-#     # path('s/register'),
-#     # # 產品
-#     # path('g/search'),
-#     # # 個資
-#     path('p/personal', dv.MemberAPIViews.as_view(),name='member'),
-#     path('p/personal/pdsearch',dv.MemberP_Viewset.as_view(),name='member') ,
-# ]
