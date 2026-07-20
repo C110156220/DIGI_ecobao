@@ -1,0 +1,28 @@
+# 環飽 EcoBǎo backend — Python dependencies
+# 版本以專案產生時的 Django 4.1.x 為基準；如需升級請一併驗證相依套件。
+
+# Core framework
+Django==4.1.10
+
+# REST API
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+django-ratelimit==4.1.0
+
+# Database driver (MySQL)
+mysqlclient==2.2.4
+# 獨立資料填充腳本 (雜物/) 使用 PyMySQL
+PyMySQL==1.1.1
+
+# Image handling (ImageField / Pillow)
+Pillow==10.3.0
+
+# Email templating (notice/app.py)
+Jinja2==3.1.4
+
+# HTTP requests (Google Maps Geocoding)
+requests==2.32.3
+
+# Environment variable loading
+python-dotenv==1.0.1
