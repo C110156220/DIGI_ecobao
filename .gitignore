@@ -1,0 +1,41 @@
+# ─── Environment & secrets ───────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ─── Virtual environments ────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ─── Django ──────────────────────────────────────────────
+*.log
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+/staticfiles/
+/static_root/
+
+# User-uploaded media (store photos, activity images, goods pictures).
+# 若需保留範例圖片，可自行調整此規則。
+/assets/
+/media/
+
+# ─── Editor / OS ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+# .vscode/ is kept intentionally for the shared cSpell dictionary.

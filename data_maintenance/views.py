@@ -547,9 +547,10 @@ class Store_data_Viewset(viewsets.ModelViewSet):
         # 定義Google Maps Geocoding API的網址
         geocoding_api_url = "https://maps.googleapis.com/maps/api/geocode/json"
         # 製作請求的參數
+        import os
         params = {
             'address': address,
-            'key': "User_input!"
+            'key': os.environ.get('GOOGLE_MAPS_API_KEY', '')
         }
         # 發送GET請求
         response = requests.get(geocoding_api_url, params=params)

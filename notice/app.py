@@ -1,3 +1,5 @@
+import os
+
 
 class Email:
     def __init__(self, content=None):
@@ -6,9 +8,9 @@ class Email:
         # 信件內容
         self.mail_info = MIMEMultipart()
         # self.content = content
-        # 寄信伺服器
-        self.account = "redacted@example.com"
-        self.password = "***REMOVED-GMAIL-APP-PASSWORD***"
+        # 寄信伺服器（帳號 / 應用程式密碼由環境變數提供，見 .env.example）
+        self.account = os.environ.get("EMAIL_HOST_USER", "")
+        self.password = os.environ.get("EMAIL_HOST_PASSWORD", "")
 
     def send(self, email):
 
@@ -37,7 +39,7 @@ class Email:
             "Cencel":"<Ecobao>_訂單取消通知"
         }
         from email.mime.text import MIMEText
-        self.mail_info['From'] = "redacted@example.com"
+        self.mail_info['From'] = self.account
         self.mail_info['To'] = data['email']
         self.mail_info['subject'] = s[status]
         mail_data = {

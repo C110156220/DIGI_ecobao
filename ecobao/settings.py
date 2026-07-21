@@ -12,8 +12,26 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from a local .env file if present (see .env.example).
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    # python-dotenv is optional; env vars can also be supplied by the shell/host.
+    pass
+
+
+def env_bool(key, default='False'):
+    return os.environ.get(key, default).lower() in ('1', 'true', 'yes', 'on')
+
+
+def env_list(key, default=''):
+    raw = os.environ.get(key, default)
+    return [item.strip() for item in raw.split(',') if item.strip()]
 
 MEDIA_URL = 'assets/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'assets').replace("//",'/')
@@ -22,12 +40,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR,'assets').replace("//",'/')
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '***REMOVED-DJANGO-SECRET-KEY***'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-dev-key-change-me-in-production',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DEBUG', 'True')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '*')
 AUTH_USER_MODEL = 'data_maintenance.MemberP'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_EMAIL_REQUIRED = False
@@ -55,9 +76,13 @@ INSTALLED_APPS = [
 ]
 
 REST_FRAMEWORK = {
+    # 全域預設為「需驗證」。DRF 會 AND 所有 default permission classes，
+    # 原本同時列出 IsAuthenticated 與 AllowAny，實際效果仍等同 IsAuthenticated，
+    # 但兩者並列易生誤解，故收斂為單一預設。
+    # 公開 endpoint 請於該 view/action 以 @permission_classes([AllowAny]) 明確覆寫
+    # (本專案多數 action 已各自宣告 permission_classes)。
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.AllowAny',
     ),
    'DEFAULT_AUTHENTICATION_CLASSES': (
     'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -126,12 +151,12 @@ WSGI_APPLICATION = 'ecobao.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ecobao',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.mysql'),
+        'NAME': os.environ.get('DB_NAME', 'ecobao'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         }
 }
 
@@ -154,12 +179,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# PASSWORD_HASHERS = [
-#     'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
-#     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-#     'django.contrib.auth.hashers.Argon2PasswordHasher',
-# ]
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
@@ -179,13 +198,11 @@ STATIC_URL = 'static/'
 
 
 # CORS setting
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:8000",
-    # 趙伯恩測試網址
-    "http://localhost:3000",
-    # 網域名稱
-]
+# Comma-separated list of allowed origins, configurable via CORS_ALLOWED_ORIGINS env var.
+CORS_ALLOWED_ORIGINS = env_list(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:8080,http://127.0.0.1:8000,http://localhost:3000',
+)
 
 CORS_ALLOW_METHODS = [
 'GET',
