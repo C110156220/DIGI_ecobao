@@ -34,7 +34,8 @@ urlpatterns = [
     path('api/token/refresh/',TokenRefreshView.as_view(),name='token'),
     path('Member/login/',dv.Member_LoginAPIViews.as_view(),name="會員登入"),
     path('Store/check/',dv.Store_LoginAPIViews.as_view(),name='店家登入'),
-    path('default/admin',admin.site.urls)
+    # 注意結尾斜線：少了它，admin 的子路由會被串成 /default/adminlogin/。
+    path('default/admin/',admin.site.urls)
 ]
 
 urlpatterns += router.urls
