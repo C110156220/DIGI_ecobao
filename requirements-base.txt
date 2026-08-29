@@ -1,0 +1,30 @@
+# 環飽 EcoBǎo backend — 核心相依套件（不含資料庫驅動）
+# Core dependencies, excluding the database driver.
+# 版本以專案產生時的 Django 4.1.x 為基準；如需升級請一併驗證相依套件。
+#
+# 這個檔案不含 mysqlclient，因此在沒有安裝 MySQL client library 的機器上
+# 也能順利安裝——測試與 demo 模式（SQLite）只需要這一份。
+
+# Core framework
+Django==4.1.10
+
+# REST API
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+django-ratelimit==4.1.0
+
+# Image handling (ImageField / Pillow)
+Pillow==10.3.0
+
+# Email templating (notice/app.py)
+Jinja2==3.1.4
+
+# HTTP requests (Google Maps Geocoding)
+requests==2.32.3
+
+# 距離計算 (data_maintenance.views.Store_search_Viewset.device_around)
+geopy==2.4.1
+
+# Environment variable loading
+python-dotenv==1.0.1
