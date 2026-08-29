@@ -650,9 +650,14 @@ class Member_register_APIViews(viewsets.ModelViewSet):
         data2['account'] = request.data.get('account', '')
         data2['password'] = request.data.get('password', '')
 
-        if '' in data or None in data:
+        # 注意：此處必須檢查「值」而非「鍵」。
+        # 舊寫法 `if '' in data` 檢查的是 dict 的 key，永遠為 False，
+        # 導致空白欄位可直接通過驗證。
+        # allergen 允許留空（model 為 blank=True），故不列入必填。
+        required = ['name', 'phone', 'gender', 'email', 'address', 'birth']
+        if any(data.get(field) in ('', None) for field in required):
             return (Response(status=404, data='未提供資料'))
-        if '' in data2 or None in data2:
+        if any(value in ('', None) for value in data2.values()):
             return (Response(status=404, data='未提供資料'))
         if MemberP.objects.filter(account=data2['account']).count() == 1:
             return (Response(status=404, data='帳號重複'))

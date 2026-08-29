@@ -23,11 +23,15 @@ ENV/
 db.sqlite3
 db.sqlite3-journal
 *.sqlite3
+# Demo 模式產生的 SQLite 與媒體檔（見 ecobao/settings_demo.py）
+demo.sqlite3
+/demo_media/
 /staticfiles/
 /static_root/
 
 # User-uploaded media (store photos, activity images, goods pictures).
-# 若需保留範例圖片，可自行調整此規則。
+# 這些是實際部署時使用者上傳的檔案，不屬於原始碼，故不納入版控。
+# README 用的示範截圖請放 docs/screenshots/（該目錄有版控）。
 /assets/
 /media/
 

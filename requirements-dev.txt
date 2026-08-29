@@ -1,0 +1,8 @@
+# 開發 / 測試 / demo 用相依套件 — 不需要 MySQL
+# Dev, test and demo dependencies — no MySQL required.
+# 安裝：pip install -r requirements-dev.txt
+
+-r requirements-base.txt
+
+# 產生 README 截圖用（scripts/screenshots.py），需搭配本機 Google Chrome。
+selenium==4.36.0
