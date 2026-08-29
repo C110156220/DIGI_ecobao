@@ -304,8 +304,14 @@ python manage.py test data_maintenance.tests.JWTLoginTests --settings=ecobao.set
 | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | Gmail SMTP 帳號與應用程式密碼 |
 | `GOOGLE_MAPS_API_KEY` | Google Maps Geocoding API 金鑰 |
 
-> **安全提醒**：`.env` 已列入 `.gitignore`，請勿提交任何真實金鑰至版本控制。
-> `settings_test.py` 與 `settings_demo.py` 內含的金鑰為固定測試值，僅供本機使用。
+> **安全提醒**
+>
+> - `.env` 已列入 `.gitignore`，請勿提交任何真實金鑰至版本控制。
+> - `settings_test.py` 與 `settings_demo.py` 內含的金鑰為固定測試值，僅供本機使用。
+> - 本專案早期的提交曾將 Django `SECRET_KEY` 與 Gmail 應用程式密碼寫死在程式碼中，
+>   雖然目前的程式碼已全數改為讀取環境變數，但**舊的值仍留存於 git 歷史**。
+>   若要將此 repo 公開，請先**輪替（rotate）這些憑證**：重新產生 `SECRET_KEY`、
+>   於 Google 帳號撤銷並重新簽發 Gmail 應用程式密碼。
 
 ---
 
